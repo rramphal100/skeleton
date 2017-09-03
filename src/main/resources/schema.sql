@@ -7,3 +7,15 @@ CREATE TABLE receipts (
 
   PRIMARY KEY (id)
 );
+
+CREATE TABLE tags(
+  id INT UNSIGNED,
+  tag VARCHAR(20) NOT NULL,
+
+  PRIMARY KEY (id, tag),
+
+  INDEX tag_index (id),
+  FOREIGN KEY (id)
+    REFERENCES receipts(id)
+  ON DELETE CASCADE
+);
