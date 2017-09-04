@@ -23,7 +23,7 @@ public class TagDao {
     }
 
     public void deleteRecord(int tagID, String tagName){
-        dsl.deleteFrom(TAGS).where(TAGS.ID.eq(tagID).and(TAGS.TAG.eq(tagName)));
+        dsl.deleteFrom(TAGS).where(TAGS.ID.eq(tagID).and(TAGS.TAG.eq(tagName))).execute();
     }
 
     public void toggleTag(int receiptId, String tagName){

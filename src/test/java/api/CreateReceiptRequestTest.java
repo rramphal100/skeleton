@@ -41,4 +41,15 @@ public class CreateReceiptRequestTest {
         validator.validate(receipt);
         assertThat(validator.validate(receipt), hasSize(1));
     }
+
+    //created by Ryan Ramphal
+    @Test
+    public void testEmptyMerchant(){
+        CreateReceiptRequest receipt = new CreateReceiptRequest();
+        receipt.amount = new BigDecimal(33.44);
+        receipt.merchant = "";
+
+        validator.validate(receipt);
+        assertThat(validator.validate(receipt), hasSize(1));
+    }
 }

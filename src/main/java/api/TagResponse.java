@@ -5,13 +5,13 @@ import generated.tables.records.TagsRecord;
 
 public class TagResponse {
     @JsonProperty
-    int receiptId;
+    int id;
 
     @JsonProperty
     String tagName;
 
     public TagResponse(TagsRecord dbRecord) {
         this.tagName = dbRecord.getTag();
-        this.receiptId = dbRecord.getId();
+        this.id = dbRecord.getId();
     }
 }

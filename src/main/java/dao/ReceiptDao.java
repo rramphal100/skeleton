@@ -2,6 +2,7 @@ package dao;
 
 import api.ReceiptResponse;
 import generated.tables.records.ReceiptsRecord;
+import org.hibernate.validator.constraints.NotEmpty;
 import org.jooq.Configuration;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
