@@ -16,4 +16,10 @@ public class StaticHtmlController {
         Resources.getResource("index.html");
         return Resources.toString(Resources.getResource("index.html"), UTF_8);
     }
+
+    @Path("/netid")
+    @GET
+    public String getNetId(){
+        return "rdr233";
+    }
 }
