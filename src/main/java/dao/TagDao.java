@@ -28,7 +28,6 @@ public class TagDao {
 
     public void toggleTag(int receiptId, String tagName){
 
-
         if(checkRecord(receiptId, tagName) != -1){
             deleteRecord(receiptId, tagName);
         }
@@ -36,12 +35,18 @@ public class TagDao {
             dsl.insertInto(TAGS, TAGS.ID, TAGS.TAG)
                     .values(receiptId, tagName).execute();
         }
-
-
     }
 
-    public List<TagsRecord> getTags(String tagName) {
+    public List<TagsRecord> getTagsByTagName(String tagName) {
         return dsl.selectFrom(TAGS).where(TAGS.TAG.eq(tagName)).fetch();
+    }
+
+    public List<TagsRecord> getTagsByReceiptId(int receiptId) {
+        return dsl.selectFrom(TAGS).where(TAGS.ID.eq(receiptId)).fetch();
+    }
+
+    public List<TagsRecord> getAllTags() {
+        return dsl.selectFrom(TAGS).fetch();
     }
 }
 

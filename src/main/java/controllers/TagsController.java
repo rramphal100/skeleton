@@ -18,14 +18,22 @@ public class TagsController {
 
     public TagsController(TagDao tags) { this.tags = tags; }
 
+    @DELETE
+    public List<TagResponse> getAllTags(){
+        List<TagsRecord> tagRecords = tags.getAllTags();
+        return tagRecords.stream().map(TagResponse::new).collect(toList());
+    }
+
+
     @PUT
     public void toggleTag(@PathParam("tag") String tagName, int tag){
         tags.toggleTag(tag, tagName);
     }
 
+
     @GET
     public List<TagResponse> getTagsByTagName(@PathParam("tag") String tagName) {
-        List<TagsRecord> tagRecords = tags.getTags(tagName);
+        List<TagsRecord> tagRecords = tags.getTagsByTagName(tagName);
         return tagRecords.stream().map(TagResponse::new).collect(toList());
     }
 }

@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <link rel="stylesheet" href="style.css" />
+    <!-- <link rel="stylesheet" href="style.css" /> -->
     <script data-require="jquery@*" data-semver="3.1.1" src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
     <style>
         #container {border: 1px solid brown;}
@@ -36,12 +36,32 @@
             const api = ""; // <- do not need a root api URL if this page is served directly by the API
 
             $.getJSON(api+"/receipts", function(receipts){
-                for(var i=0; i < receipts.length; i++) {
-                    var receipt = receipts[i];
-                    $(`<div class="receipt">${receipt.merchantName}<div><span class="receiptTag">t1</span></div></div>`)
-                        .appendTo($("#receiptList"));
-                }
+                $.getJSON(api+"/tags", function(tags){
 
+                    for(var i=0; i < receipts.length; i++) {
+                        var receipt = receipts[i];
+                        
+                        $(`<div class="receipt"><span class="merchantName">${receipt.merchantName}</span>`
+                            + `<span class="receiptCreatedAtTime">${receipt.createdAt}</span>` + 
+                            `<span class="receiptAmount">${receipt.amount}</span>` + 
+                            `<div class="tags">></div></div>`)
+                        .appendTo($("#receiptList"));
+                        
+                        //get all tags for current receipt then insert them into the .tags div
+                        var receiptTags = "";
+                        for(var j=0; j < tags.length; j++){
+                            var tag = tags[j];
+                            if(tag.id == receipt.id){
+                                receiptTags += `<span class="tag">`
+                                    + `${tag.tagName}</span>`;
+                            }
+                        }
+                    }
+                
+                // Get all receipts from /receipts, then for each, get all tags for that receipt from /tag/:id and list them
+                // getting tags by id is a new function you need to implement
+
+            })
             })
         })
     </script>
@@ -50,7 +70,7 @@
 <body>
 <DIV id="container">
     <h1>My receipts</h1>
-    <div class="button">+</div>
+    <div class="button" id="add-receipt">+</div>
     <div id="receiptList">
     </div>
 </DIV>

@@ -2,7 +2,8 @@
 <html>
 
 <head>
-    <link rel="stylesheet" href="style.css" />
+    <!-- <link rel="stylesheet" href="style.css" /> -->
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <script data-require="jquery@*" data-semver="3.1.1" src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
     <style>
         #container {border: 1px solid brown;}
@@ -28,6 +29,89 @@
             margin-bottom: 5px;
         }
 
+        .receiptPart  {
+            display: inline-block;
+            margin: 0;
+            width: 25%;
+            position: relative;
+        }
+
+        .tag {
+            padding-top: 5px;
+        }
+
+        .tag-delete {
+            background-image: url("http://findicons.com/files/icons/1008/quiet/128/no.png");
+            background-repeat: no-repeat;
+            background-size: contain;
+            height: 15px;
+            width: 15px;
+            display: inline-block;
+            cursor: pointer;
+        }
+
+        .table {
+            display: table;
+            width: 100%;
+        }
+
+        div.row {
+            display: table-row;
+            margin-bottom: 10px;
+            border: 1px solid black;
+        }
+
+        .column {
+            display: table-cell;
+            float: left;
+            width: 25%;
+            height: inherit;
+        }
+
+        .header span {
+            font-size: 30px;
+            font-style: bold;
+            width: 25%;
+            display: inline-block;
+        }
+
+        .add-receipt-container {
+            border: 1px solid blue;
+            background-color: orange;
+            display: block;
+            float: right;
+            clear: both;
+        }
+
+        .add-receipt-form {
+            display: none;
+        }
+
+        .add-receipt-form input {
+            display: block;
+        }
+
+        #add-receipt {
+            cursor: pointer;
+        }
+
+        .receipt-id {
+            visibility: hidden;
+        }
+
+        #add-receipt-error-message {
+            font: 20px;
+            color: red;
+            width: inherit;
+            float: left;
+            clear: right;
+            visibility: hidden;
+        }
+
+        .add-tag-form {
+            display: none;
+        }
+
     </style>
     <script>
         // This is the idiomatic way to ensure that JQuery does not
@@ -35,23 +119,201 @@
         $(function(){
             const api = ""; // <- do not need a root api URL if this page is served directly by the API
 
-            $.getJSON(api+"/receipts", function(receipts){
-                for(var i=0; i < receipts.length; i++) {
-                    var receipt = receipts[i];
-                    $(`<div class="receipt">${receipt.merchantName}<div><span class="receiptTag">t1</span></div></div>`)
-                        .appendTo($("#receiptList"));
+            function addZeroes( num ) {
+                var value = Number(num);
+                if(num.indexOf('.') === -1) {
+                    value = value.toFixed(2);
                 }
+                return value;
+            };
 
+            $(`<div class="header"><span>Merchant</span><span>Created At</span>`
+                + `<span>Amount</span><span>Tags</span>`)
+            .appendTo($("#receiptList"));
+
+            $.getJSON(api+"/receipts", function(receipts){
+                $.ajax({
+                    url: api+"/tags/all",
+                    method: 'DELETE',
+                    contentType: 'application/json',
+                    crossDomain: true,
+                    success: function(tags){
+
+                    for(var i=0; i < receipts.length; i++) {
+                        var receipt = receipts[i];
+                        var modValue = addZeroes(receipt.value.toString()).toString();
+
+                        $(`<div class="receipt row"><div class="receipt-id">${receipt.id}</div>`
+                            + `<div class="column receiptPart merchant">${receipt.merchantName}</div>`
+                            + `<div  class="column receiptPart receiptCreatedAtTime">${receipt.created}</div>` 
+                            + `<div class="column receiptPart amount">${modValue}</div>` 
+                            + `<div class="column receiptPart tagList"><div class="tags"></div>`
+                            + `<div class="add-tag button">Add Tag</div><div class="add-tag-form">`
+                            + `<input type="text" class="tag_input" size=30px placeholder="Tag Name"></div></div>`)
+                        .appendTo($("#receiptList"));
+                        
+                        //get all tags for current receipt then insert them into the .tags div
+                        var receiptTags = "";
+                        for(var j=0; j < tags.length; j++){
+                            var tag = tags[j];
+                            if(tag.id == receipt.id){
+                                receiptTags += `<div class="tag tagValue">`
+                                    + `${tag.tagName}<div class="tag-delete"></div></div>`;
+                            }
+                        }
+                        //add the tags to the DOM
+                        $('.tags', $('.receipt')[i]).html(receiptTags);
+                    }
+                }}).fail(function( jqxhr, textStatus, error ) {
+                    var err = textStatus + ", " + error;
+                    console.log( "Request Failed: " + err );
+            })}).fail(function( jqxhr, textStatus, error ) {
+                var err = textStatus + ", " + error;
+                console.log( "Request Failed: " + err );
+            });
+
+            $("#add-receipt").click(function(){
+                console.log("Clicked add receipt button!")
+                $("#merchant").val("");
+                $("#amount").val("");
+                $(".add-receipt-form").toggle();
+            });
+
+            $(document).on('click', ".tagValue", function(){
+                console.log("Delete tag button clicked!");
+                var tagname = $(this).text();
+                var deletebutton = this;
+                //tagname = tagname.substring(0, tagname.length - 1);
+                $.ajax({
+                    url: api+"/tags/"+tagname,
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    data: $(".receipt-id", $(this).parent().parent().parent()).text(),
+                    success: function(){
+                        console.log("Removing deleted tag from DOM...");
+                        $(deletebutton).remove();
+                    }
+                });
             })
+
+            $(document).on('click', "#cancel-receipt", function(){
+                $("#merchant").val("");
+                $("#amount").val("");
+                $(".add-receipt-form").toggle();
+            });
+
+            $(document).on('click', "#save-receipt", function(){
+                console.log("Attempting to add a new receipt...");
+                var merchant = $("#merchant").val();
+                //var amount = parseFloat($("#amount").val());
+                var amount = addZeroes($("#amount").val());
+                var time = new Date($.now());
+                var created = time.getHours() + ":" + time.getMinutes() + ":" + time.getSeconds();
+
+                $("#add-receipt-error-message").text("").css("visibility", "hidden");
+                $.ajax({
+                    url: api+"/receipts",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    data: JSON.stringify({
+                        "merchant": merchant,
+                        "amount": amount
+                    }),
+                    dataType: "json",
+                    method: "POST",
+                    success: function(id){
+                        console.log("Receipt created with ID: " + id.toString());
+                        $(`<div class="receipt row"><div class="receipt-id">`+id.toString()+`</div>`
+                            + `<div class="column receiptPart merchant">`+merchant+`</div>`
+                            + `<div class="column receiptPart receiptCreatedAtTime">`+created+`</div>` 
+                            + `<div class="column receiptPart amount">`+amount+`</div>` 
+                            + `<div class="column receiptPart tagList"><div class="tags"></div>`
+                            + `<div class="add-tag button">Add Tag</div><div class="add-tag-form">`
+                            + `<input type="text" class="tag_input" size=30px placeholder="Tag Name"></div></div>`)
+                        .appendTo($("#receiptList"));
+
+                        //remove submitted values from add receipt form
+                        $("#merchant").val("");
+                        $("#amount").val("");
+                    }
+                }).fail(function( jqxhr, textStatus, error ) {
+                    var err = "Error: " + error;
+                    console.log( "Request Failed: " + err );
+                    
+                    //add to DOM at error field in add receipt div
+                    $("#add-receipt-error-message").text(err);
+                    $("#add-receipt-error-message").css("visibility", "visible");
+                });
+            });
+            //TODO
+            //toggle this.add-tag-form when this.add-tag is clicked --- DONE
+            //add tag (PUT to /tags/tagname) when input.tag_input is active and user strikes 'ENTER' key
+            //current tag implementation on line 153
+
+            $(document).on('click', ".add-tag", function(){
+                console.log("Add tag clicked for receipt: " + $(this).parent());
+                $(this).parent().children(".add-tag-form").toggle();
+            });
+
+            $(document).on('keyup', ".tag_input", function (e) {
+                if (e.keyCode == 13) {
+                    console.log("Initiated add tag functionality.");
+
+                    //delete tag from current receipt with PUT request
+                    var tagInput = this;
+                    var tagName = $(this).val();
+                    var receiptNode = $(this).parent().parent().parent();
+                    var receiptId = $(receiptNode).children(".receipt-id").text();
+
+                    console.log(receiptNode);
+                    console.log(receiptId);
+
+                    $.ajax({
+                        url: api+"/tags/" + tagName,
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        //data: JSON.stringify(receiptId.toString()),
+                        data: receiptId,
+                        dataType: "json",
+                        method: "PUT",
+                        success: function(){
+                            console.log("Tag " + tagName + " successfully added to receipt id " + receiptId.toString() + "!");
+                            $(tagInput).val("");
+                            $(receiptNode).children("#add-tag-form").toggle();
+
+                            //add the new tag to the DOM
+                            $(`<div class="tag tagValue">` + tagName + `<div class="tag-delete"></div></div>`).appendTo($(".tags", $(receiptNode)));
+                        }
+                    }).fail(function( jqxhr, textStatus, error ) {
+                        console.log("Error: " + error);
+                        $(tagInput).val("Error: " + error);
+                    });
+                }
+            });
+
+
         })
     </script>
 </head>
 
 <body>
 <DIV id="container">
-    <h1>My receipts</h1>
-    <div class="button">+</div>
-    <div id="receiptList">
+    <h1>Ryan Ramphal's Receipts</h1>
+    <div class="add-receipt-container">
+        <div class="button" id="add-receipt">+</div>
+        <p id="add-receipt-error-message"></p>
+        <div class="add-receipt-form custom-form">
+            <input type="text" name="merchant" id="merchant" placeholder="Merchant Name" size=30px>
+            <input type="text" name="amount" id="amount" placeholder="Amount (digits and decimal only)" size=30px>
+            <button class="add-receipt-form" type="button" id="cancel-receipt">Cancel</button>
+            <button class="add-receipt-form" type="button" id="save-receipt">Save</button>
+        </div>
+    </div>
+    <div id="receiptList" class="table">
     </div>
 </DIV>
 </body>
