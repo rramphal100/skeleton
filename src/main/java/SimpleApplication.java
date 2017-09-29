@@ -1,6 +1,4 @@
-import controllers.ReceiptController;
-import controllers.TagsController;
-import controllers.StaticHtmlController;
+import controllers.*;
 import dao.ReceiptDao;
 import dao.TagDao;
 import healthchecks.HTTPServerHealthCheck;
@@ -49,5 +47,6 @@ public class SimpleApplication extends Application<Configuration> {
 
         //Register healthchecks below
         env.healthChecks().register("HTTP Server HealthCheck", new HTTPServerHealthCheck("http://localhost:8080"));
+        env.jersey().register(new ReceiptImageController());
     }
 }
