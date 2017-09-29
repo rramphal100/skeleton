@@ -3,6 +3,7 @@ import controllers.TagsController;
 import controllers.StaticHtmlController;
 import dao.ReceiptDao;
 import dao.TagDao;
+import healthchecks.HTTPServerHealthCheck;
 import io.dropwizard.Application;
 import io.dropwizard.Configuration;
 import io.dropwizard.setup.Environment;
@@ -45,5 +46,8 @@ public class SimpleApplication extends Application<Configuration> {
         env.jersey().register(new StaticHtmlController());
         env.jersey().register(new ReceiptController(receiptDao));
         env.jersey().register(new TagsController(tagDao));
+
+        //Register healthchecks below
+        env.healthChecks().register("HTTP Server HealthCheck", new HTTPServerHealthCheck("http://localhost:8080"));
     }
 }
