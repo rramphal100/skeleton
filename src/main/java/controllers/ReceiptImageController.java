@@ -25,6 +25,7 @@ public class ReceiptImageController {
 
     }
 
+
     /**
      * This borrows heavily from the Google Vision API Docs.  See:
      * https://cloud.google.com/vision/docs/detecting-fulltext
@@ -51,9 +52,33 @@ public class ReceiptImageController {
             // Your Algo Here!!
             // Sort text annotations by bounding polygon.  Top-most non-decimal text is the merchant
             // bottom-most decimal text is the total amount
+            boolean setMerchant = false;
+
+            //set to true for debugging output
+            boolean debug = true;
+
             for (EntityAnnotation annotation : res.getTextAnnotationsList()) {
-                out.printf("Position : %s\n", annotation.getBoundingPoly());
-                out.printf("Text: %s\n", annotation.getDescription());
+                    out.printf("Position : %s\n", annotation.getBoundingPoly());
+                    out.printf("Text: %s\n", annotation.getDescription());
+
+                if(!setMerchant) {
+                    merchantName = annotation.getDescription().substring(0,annotation.getDescription().indexOf('\n'));
+                    setMerchant = true;
+                    if(debug) out.printf("Merchant set.\n");
+                }
+
+                if(annotation.getDescription().matches("^[+-]?(\\d*)[\\.]\\d{2}$")){
+                    amount = new BigDecimal(annotation.getDescription());
+                    if(debug) out.printf("Got decimal w/o a $ in it.\n");
+                }
+
+                if(annotation.getDescription().matches("^[+-]?(\\$\\d*)[\\.]\\d{2}$")){
+                    if(debug) {
+                        out.printf(annotation.getDescription().substring(annotation.getDescription().indexOf('$') + 1) + '\n');
+                        out.printf("Got decimal with a $ in it.: " + annotation.getDescription() + "\n\n\n");
+                    }
+                    amount = new BigDecimal(annotation.getDescription().substring(annotation.getDescription().indexOf('$') + 1));
+                }
             }
 
             //TextAnnotation fullTextAnnotation = res.getFullTextAnnotation();

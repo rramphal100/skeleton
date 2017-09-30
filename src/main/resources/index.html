@@ -11,8 +11,6 @@
         }
 
         video {
-            width: 550px;
-            height: 450px;
             border: 1px solid black;
         }
 
@@ -59,9 +57,9 @@
             height: inherit;
         }
 
-        .header span {
+        .header div {
             font-size: 30px;
-            font-style: bold;
+            font-weight: bold;
             width: 25%;
             display: inline-block;
         }
@@ -69,9 +67,12 @@
         .add-receipt-container {
             border: 1px solid blue;
             background-color: orange;
-            display: block;
+            display: inline-block;
             float: right;
             clear: both;
+            height: 20px;
+            position: relative;
+            z-index: 1;
         }
 
         .add-receipt-form {
@@ -82,8 +83,19 @@
             display: block;
         }
 
+        .add-receipt-by-image-capture-form{
+            display: none;
+        }
+
+        .add-receipt-by-image-capture-form input{
+            display: block;
+        }
+
         #add-receipt {
             cursor: pointer;
+            padding-left: 12px;
+            padding-right: 12px;
+            display: inline-block;
         }
 
         .receipt-id {
@@ -91,12 +103,17 @@
         }
 
         #add-receipt-error-message {
-            font: 20px;
+            font-size: 20px;
             color: red;
             width: inherit;
             float: left;
             clear: right;
             visibility: hidden;
+        }
+
+        .add-tag {
+            cursor: pointer;
+            background-color: lime;
         }
 
         .add-tag-form {
@@ -107,6 +124,21 @@
             height: 3em;
         }
 
+        #snaphot:not([disbled]){
+            cursor: pointer;
+        }
+
+        #start-camera {
+            padding-left: 12px;
+            padding-right: 12px;
+            display: inline-block;
+            border-left: 2px solid black;
+            cursor: pointer;
+        }
+
+        .custom-form *{
+            background-color: orange;
+        }
     </style>
     <script>
         // This is the idiomatic way to ensure that JQuery does not
@@ -122,9 +154,9 @@
                 return value;
             };
 
-            $(`<div class="header"><span>Merchant</span><span>Created At</span>`
-                + `<span>Amount</span><span>Tags</span>`)
-            .appendTo($("#receiptList"));
+            //$(`<div class="header"><span>Merchant</span><span>Created At</span>`
+            //    + `<span>Amount</span><span>Tags</span>`)
+            //.appendTo($("#receiptList"));
 
             $.getJSON(api+"/receipts", function(receipts){
                 $.ajax({
@@ -233,6 +265,12 @@
                         //remove submitted values from add receipt form
                         $("#merchant").val("");
                         $("#amount").val("");
+
+                        //close video stream and feed if they are currently open
+                        if($($('video')[0]).is(':visible')) {
+                            $('video')[0].srcObject.getVideoTracks()[0].stop()
+                            $(".add-receipt-by-image-capture-form").toggle(false);
+                        }
                     }
                 }).fail(function( jqxhr, textStatus, error ) {
                     var err = "Error: " + error;
@@ -243,14 +281,13 @@
                     $("#add-receipt-error-message").css("visibility", "visible");
                 });
             });
-            //TODO
-            //toggle this.add-tag-form when this.add-tag is clicked --- DONE
-            //add tag (PUT to /tags/tagname) when input.tag_input is active and user strikes 'ENTER' key
-            //current tag implementation on line 153
 
             $(document).on('click', ".add-tag", function(){
                 console.log("Add tag clicked for receipt: " + $(this).parent());
                 $(this).parent().children(".add-tag-form").toggle();
+                if($(this).parent().children(".add-tag-form").children('.tag_input').is(':visible')){
+                    $(this).parent().children(".add-tag-form").children('.tag_input').focus();
+                }
             });
 
             $(document).on('keyup', ".tag_input", function (e) {
@@ -291,7 +328,8 @@
             });
 
 
-        })
+        });
+    </script>
     <script>
         let imageCapture;
         let track;
@@ -334,7 +372,12 @@
                     success: function() {},
                })
                 .then(response => {
-                    $('video').after(`<div>got response: <pre>${JSON.stringify(response)}</pre></div>`);
+                    //$('video').after(`<div>got response: <pre>${JSON.stringify(response)}</pre></div>`);
+
+                    //open the add receipt form and fill in the fields with the response values
+                    $("#merchant").val(response.merchantName);
+                    $("#amount").val(response.amount);
+                    $(".add-receipt-form").toggle();
                 })
                 .always(() => console.log('request complete'));
 
@@ -348,7 +391,40 @@
         $(function () {
             $('#start').on('click', startVideo);
             $('video').on('play', () => $('#snapshot').prop('disabled', false));
+            $('video').on('pause', () => $('#snapshot').prop('disabled', true));
             $('#snapshot').on('click', takeSnapshot);
+        });
+
+        //begin Ryan's code
+        function imageCaptureClose(){
+            track.stop();
+            $(".add-receipt-by-image-capture-form").toggle(false);
+        }
+
+        function startReceiptCapture(){
+            console.log("Clicked start camera button!");
+            if($('#add-receipt-by-image-capture-buttons:visible').length != 0){
+                imageCaptureClose();
+                $("#merchant").val("");
+                $("#amount").val("");
+                $(".add-receipt-by-image-capture-form").toggle(false);
+                return;
+            }
+            $("#merchant").val("");
+            $("#amount").val("");
+            $(".add-receipt-by-image-capture-form").toggle();
+            startVideo();
+        }
+
+        $(function() {
+            $('#start-camera').on('click', startReceiptCapture);
+            $('#take-pic').on('click', takeSnapshot);
+            $('#take-pic-cancel').on('click', function(){
+                imageCaptureClose();
+                $("#merchant").val("");
+                $("#amount").val("");
+                $('#add-receipt-form').toggle(false);
+            });
         });
     </script>
 </head>
@@ -356,23 +432,40 @@
 <body>
 <DIV id="container">
     <h1>Ryan Ramphal's Receipts</h1>
-    <div class="add-receipt-container">
-        <div class="button" id="add-receipt">+</div>
-        <p id="add-receipt-error-message"></p>
-        <div class="add-receipt-form custom-form">
-            <input type="text" name="merchant" id="merchant" placeholder="Merchant Name" size="30px">
-            <input type="text" name="amount" id="amount" placeholder="Amount (digits and decimal only)" size="30px">
-            <button class="add-receipt-form" type="button" id="cancel-receipt">Cancel</button>
-            <button class="add-receipt-form" type="button" id="save-receipt">Save</button>
+    <div class="organizer">
+        <div class="add-receipt-container">
+            <div class="button" id="add-receipt">+</div>
+            <div class="button" id="start-camera">Start Camera</div>
+            <p id="add-receipt-error-message"></p>
+            <div class="add-receipt-form custom-form">
+                <input type="text" name="merchant" id="merchant" placeholder="Merchant Name" size="30px">
+                <input type="text" name="amount" id="amount" placeholder="Amount (digits and decimal only)" size="30px">
+                <button class="add-receipt-form" type="button" id="cancel-receipt">Cancel</button>
+                <button class="add-receipt-form" type="button" id="save-receipt">Save</button>
+            </div>
+            <div class="add-receipt-by-image-capture-form">
+                <div id="camera-feed">
+                    <video width="450" height="338" autoplay>Sorry, your browser does not support HTML5 video playback.</video>
+                </div>
+                <div class="custom-form" id="add-receipt-by-image-capture-buttons">
+                    <button class="add-receipt-by-image-capture" type="button" id="take-pic-cancel">Cancel</button>
+                    <button class="add-receipt-by-image-capture" type="button" id="take-pic">Capture</button>
+                </div>
+            </div>
+        </div>
+        <div id="receiptList" class="table">
+            <div class="header"><div>Merchant</div><div>Created At</div><div>Amount</div><div>Tags</div></div>
+            <!--
+            <button id="start">Start Video</button>
+            <button id="snapshot" disabled="true">Take a Snapshot!</button>
+            <br>
+            <div id="vidwrap">
+                <video autoplay>Your browser does not support HTML5 video playback.</video>
+            </div>
+            -->
         </div>
     </div>
-    <div id="receiptList" class="table">
-<button id="start">Start Video</button>
-<button id="snapshot" disabled="true">Take a Snapshot!</button>
-<br>
-<div id="vidwrap">
-    <video autoplay></video>
-    </div>
+</DIV>
 </body>
 
 </html>
